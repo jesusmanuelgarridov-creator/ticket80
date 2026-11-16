@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PDF A4 a Ticket 80 mm</title>
+<meta name="description" content="Convierte un PDF A4 a ticket 80x210 mm para impresora térmica.">
+<style>
+:root{--bg:#f6f5f1;--card:#fff;--tx:#1d1d1b;--mut:#6b6a64;--ac:#0f6e56;--acx:#fff;--bd:#dcdad2;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#171716;--card:#222220;--tx:#f0efe9;--mut:#a3a29a;--ac:#3ecf9f;--acx:#0b1f18;--bd:#3a3a36}}
+:root[data-theme="dark"]{--bg:#171716;--card:#222220;--tx:#f0efe9;--mut:#a3a29a;--ac:#3ecf9f;--acx:#0b1f18;--bd:#3a3a36}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:920px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:1.4rem;margin:0 0 4px}
+p.sub{color:var(--mut);margin:0 0 18px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px;margin-bottom:14px}
+.drop{border:2px dashed var(--bd);border-radius:12px;padding:28px 12px;text-align:center;cursor:pointer;color:var(--mut)}
+.drop.on{border-color:var(--ac);color:var(--tx)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+label{display:block;font-size:.85rem;color:var(--mut)}
+input[type=number],select{width:100%;margin-top:4px;padding:8px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);font:inherit}
+.chk{display:flex;align-items:center;gap:8px;color:var(--tx);font-size:.95rem}
+button{font:inherit;padding:10px 18px;border-radius:10px;border:1px solid var(--ac);background:var(--ac);color:var(--acx);cursor:pointer;font-weight:600}
+button.sec{background:transparent;color:var(--ac)}
+button:disabled{opacity:.4;cursor:not-allowed}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+#prev{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;overflow-x:auto}
+#prev canvas{border:1px solid var(--bd);background:#fff;width:240px;max-width:100%;height:auto;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.hint{font-size:.85rem;color:var(--mut)}
+#printArea{display:none}
+@page{size:80mm 210mm;margin:0}
+@media print{
+ :root{padding:0}
+ html,body{background:#fff;margin:0}
+ body>main{display:none!important}
+ #printArea{display:block}
+ .tk{width:80mm;height:210mm;page-break-after:always;break-after:page;overflow:hidden}
+ .tk:last-child{page-break-after:auto;break-after:auto}
+ .tk img{width:80mm;height:210mm;display:block;image-rendering:pixelated}
+}
+</style>
+</head>
+<body>
+<main>
+ <h1>PDF A4 → Ticket 80 × 210 mm</h1>
+ <p class="sub">Sube tu PDF, revisa la vista previa y mándalo a tu impresora térmica.</p>
+
+ <div class="card">
+  <div class="drop" id="drop">Toca aquí o arrastra tu PDF A4<input type="file" id="file" accept="application/pdf" hidden></div>
+  <p class="hint" id="status" style="margin:10px 0 0"></p>
+ </div>
+
+ <div class="card">
+  <div class="grid">
+   <label>Ancho (mm)<input type="number" id="w" value="80" min="40" max="120"></label>
+   <label>Alto (mm)<input type="number" id="h" value="210" min="50" max="600"></label>
+   <label>Margen (mm)<input type="number" id="m" value="2" min="0" max="10" step="0.5"></label>
+   <label>Modo
+    <select id="mode"><option value="ticket">Ticket reorganizado (como el modelo)</option><option value="img">Imagen de la página</option></select>
+   </label>
+   <label>Letra del ticket (px)<input type="number" id="fs" value="22" min="14" max="36"></label>
+   <label>Ajuste (modo imagen)
+    <select id="fit"><option value="full">Llenar todo el ticket</option><option value="mod">Estirar moderado</option><option value="prop">Proporcional (sin deformar)</option></select>
+   </label>
+   <label>Alineación vertical
+    <select id="va"><option value="top">Arriba</option><option value="center">Centro</option></select>
+   </label>
+  </div>
+  <div class="row" style="margin-top:12px"><label class="chk"><input type="checkbox" id="crop" checked> Recortar bordes en blanco automáticamente</label></div>
+  <div class="row" style="margin-top:6px"><label class="chk"><input type="checkbox" id="bold" checked> Letra negrita y alto contraste (modo ticket)</label></div>
+  <div class="row" style="margin-top:6px"><label class="chk"><input type="checkbox" id="bw" checked> Blanco y negro (mejor para térmica)</label></div>
+ </div>
+
+ <div class="card">
+  <div id="prev"><span class="hint">La vista previa aparecerá aquí.</span></div>
+  <div class="row">
+   <button id="dl">Descargar PDF 80×210 mm</button>
+   <button id="print" class="sec">Imprimir ticket</button>
+  </div>
+  <p class="hint">En el cuadro de impresión elige tu impresora térmica y pon márgenes en “Ninguno” y escala al 100 %. Para guardar como PDF, elige “Guardar como PDF”. Puedes imprimir directo o descargar el PDF y imprimirlo desde tu visor de PDF con tamaño real (100 %).</p>
+ </div>
+</main>
+<div id="printArea"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+const PXMM=8; // ~203 dpi, típico de térmicas
+let pages=[];
+
+/*TK*/
+function toLines(items){
+  items=items.filter(t=>t.s.trim()!=="").sort((a,b)=>b.y-a.y||a.x-b.x);
+  const rows=[];
+  for(const t of items){const r=rows.find(r=>Math.abs(r.y-t.y)<3);if(r)r.it.push(t);else rows.push({y:t.y,it:[t]});}
+  rows.sort((a,b)=>b.y-a.y);
+  return rows.map(r=>{r.it.sort((a,b)=>a.x-b.x);const seg=[];
+    for(const t of r.it){const l=seg[seg.length-1];
+      if(l&&t.x-l.e<6){l.s+=(t.x-l.e>1?" ":"")+t.s;l.e=t.x+t.w}else seg.push({s:t.s,x:t.x,e:t.x+t.w});}
+    return seg;});
+}
+const NUM=/^-?[\d,]+(\.\d+)?$/;
+function parseBoleta(lines){
+  const T=lines.map(l=>l.map(g=>g.s.trim()).filter(Boolean)).filter(l=>l.length);
+  const F=T.map(l=>l.join(" "));
+  const iF=F.findIndex(t=>/Fecha de Vencimiento/i.test(t));
+  if(iF<0)return null;
+  const d={emi:[]};
+  const hdr=T.slice(0,iF).map(l=>l.join("  ")).join("\n");
+  const tit=hdr.match(/(BOLETA DE VENTA ELECTR[ÓO]NICA|FACTURA ELECTR[ÓO]NICA|NOTA DE [A-ZÓ ]+ELECTR[ÓO]NICA)/i);
+  const ruc=hdr.match(/RUC:?\s*(\d{8,11})/i), ser=hdr.match(/\b([BFE][A-Z0-9]{2,3}-\d+)\b/);
+  d.titulo=tit?tit[1].toUpperCase():"COMPROBANTE"; d.ruc=ruc?ruc[1]:""; d.serie=ser?ser[1]:"";
+  for(let i=0;i<iF;i++)for(const sg of T[i]){
+    if(/BOLETA|FACTURA|NOTA DE|RUC|^[BFE][A-Z0-9]{2,3}-\d+$/i.test(sg))continue;
+    d.emi.push(sg);}
+  const get=re=>{for(const l of T)for(let j=0;j<l.length;j++){const m=l[j].match(re);
+    if(m){let r=l[j].slice(m[0].length).replace(/^[\s:]+/,"");if(!r){r=l[j+1]||"";if(r===":")r=l[j+2]||"";}return r.trim();}}return "";};
+  d.fecha=get(/^Fecha de Emisi[óo]n/i); d.venc=get(/^Fecha de Vencimiento/i);
+  d.senor=get(/^Se[ñn]or\(es\)/i); d.moneda=get(/^Tipo de Moneda/i); d.obs=get(/^Observaci[óo]n/i);
+  if(/^(Fecha|Se[ñn]or|Tipo|Observ)/i.test(d.venc))d.venc="";
+  const iSon=F.findIndex(t=>/^SON:?/i.test(t));
+  let iH=F.findIndex(t=>/Cantidad/i.test(t)); if(iH<0)return null;
+  let iE=F.findIndex((t,i)=>i>iH&&/Otros Cargos|^SON:?|Importe Total/i.test(t)); if(iE<0)iE=T.length;
+  d.items=[];
+  for(let i=iH+1;i<iE;i++){const l=T[i];
+    if(NUM.test(l[0])&&l.length>=3){
+      const rest=l.slice(1),nums=rest.filter(x=>NUM.test(x)),txt=rest.filter(x=>!NUM.test(x));
+      d.items.push({q:l[0],desc:txt.join(" "),vu:nums[0]||"",dc:nums[1]||"",imp:nums[2]||"",ic:nums[3]||""});
+    }else if(d.items.length&&!/Unidad|Medida|Descripci|Valor|Descuento|Importe/i.test(F[i]))d.items[d.items.length-1].desc+=" "+F[i];}
+  if(!d.items.length)return null;
+  d.son=iSon>=0?F[iSon].replace(/^SON:?\s*/i,""):"";
+  const defs=[["Op. Gravada:",/^Op\.?\s*Gravada/i],["Op. Exonerada:",/^Op\.?\s*Exonerada/i],["Op. Inafecta:",/^Op\.?\s*Inafecta/i],["ISC:",/^ISC\b/i],["IGV:",/^IGV\b/i],["ICBPER:",/^ICBPER\b/i],["Otros Cargos:",/^Otros\s*Cargos/i],["Otros Tributos:",/^Otros\s*Tributos/i],["Monto de Redondeo:",/^Monto\s*de\s*Redondeo/i],["IMPORTE TOTAL:",/^Importe\s*Total/i]];
+  d.tot=[];
+  for(const [lab,re] of defs){
+    const n0=d.tot.length;
+    for(let i=Math.max(iSon,0)+1;i<T.length;i++){const l=T[i],j=l.findIndex(x=>re.test(x));
+      if(j>=0){let v=(l[j].replace(re,"")+" "+l.slice(j+1).join(" ")).replace(/^[\s:.]+/,"").replace(/\s+/g," ").trim();
+        if(/^[\d]/.test(v))v="S/ "+v; d.tot.push([lab,v]); break;}}
+    if(d.tot.length===n0&&!/TOTAL/.test(lab))d.tot.push([lab,"S/ 0.00"]);}
+  const iFo=F.findIndex(t=>/^Esta es una representaci/i.test(t));
+  d.footer=iFo>=0?F.slice(iFo).join(" "):"";
+  return d;
+}
+const money=n=>{const v=parseFloat(String(n).replace(/,/g,""));return isNaN(v)?String(n):v.toFixed(2)};
+function drawTicket(d,W,H,fs){
+  const pw=Math.round(W*PXMM),ph=Math.round(H*PXMM),pad=Math.round(2*PXMM),mw=pw-2*pad;
+  const c=document.createElement("canvas");c.width=pw;c.height=ph;
+  const x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,pw,ph);x.fillStyle="#000";x.strokeStyle="#000";x.textBaseline="top";
+  const fam='"Courier New",Courier,monospace',lh=Math.round(fs*1.3);let y=pad;
+  const BOLD=$("bold").checked;
+  const font=b=>{x.font=((b||BOLD)?"bold ":"")+fs+"px "+fam};
+  const wrap=(t,b,w)=>{font(b);const o=[];let cur="";for(const wd of String(t).split(/\s+/)){const tt=cur?cur+" "+wd:wd;
+    if(x.measureText(tt).width>w&&cur){o.push(cur);cur=wd}else cur=tt}if(cur)o.push(cur);return o};
+  const center=(t,b)=>wrap(t,b,mw).forEach(l=>{font(b);x.textAlign="center";x.fillText(l,pw/2,y);y+=lh});
+  const left=(t,b,ind=0)=>wrap(t,b,mw-ind).forEach(l=>{font(b);x.textAlign="left";x.fillText(l,pad+ind,y);y+=lh});
+  const row=(a,v,b)=>{font(b);x.textAlign="left";x.fillText(a,pad,y);x.textAlign="right";x.fillText(v,pw-pad,y);y+=lh};
+  const sep=()=>{y+=Math.round(lh*.3);x.setLineDash([5,5]);x.lineWidth=3;x.beginPath();x.moveTo(pad,y);x.lineTo(pw-pad,y);x.stroke();x.setLineDash([]);y+=Math.round(lh*.7)};
+  d.emi.forEach((t,i)=>center(t,i===0));
+  sep();
+  if(d.ruc)center("RUC: "+d.ruc,true); center(d.titulo,true); if(d.serie)center(d.serie,true);
+  sep();
+  row("Fecha Emisión:",d.fecha,false);row("Fecha Venc.:",d.venc,false);row("Señor(es):",d.senor,false);row("Moneda:",d.moneda,false);row("Observación:",d.obs,false);
+  sep();
+  font(false);const qw=x.measureText("0000.00 ").width;
+  row("CANT  DESCRIPCION","IMPORTE",true);
+  for(const it of d.items){
+    font(false);const iw=x.measureText("0000.00").width+8;
+    const dl=wrap(it.desc,false,mw-qw-iw);
+    font(false);x.textAlign="left";x.fillText(money(it.q),pad,y);x.fillText(dl[0]||"",pad+qw,y);
+    x.textAlign="right";x.fillText(money(it.imp),pw-pad,y);y+=lh;
+    for(let k=1;k<dl.length;k++){x.textAlign="left";x.fillText(dl[k],pad+qw,y);y+=lh}
+    left("V.Unit(*): "+money(it.vu)+" |",false,qw);
+    left("Dscto(*): "+money(it.dc)+" | ICBPER: "+money(it.ic),false,qw);
+  }
+  sep();
+  for(const [lab,v] of d.tot){ if(/IMPORTE TOTAL/.test(lab)){sep();row(lab,v,true);sep();} else row(lab,v,false);}
+  if(d.son)center("SON: "+d.son,true);
+  y+=lh*.5;
+  left("(*) Sin impuestos. (**) Incluye impuesto de ser Op. Gravada.",false);
+  if(d.footer){y+=lh*.5;left(d.footer,false);}
+  return {c,over:y>ph};
+}
+function hard(c){const x=c.getContext("2d"),im=x.getImageData(0,0,c.width,c.height),p=im.data;for(let i=0;i<p.length;i+=4){const v=(p[i]+p[i+1]+p[i+2])/3<215?0:255;p[i]=p[i+1]=p[i+2]=v}x.putImageData(im,0,0)}
+function ticketCanvas(d,W,H){let fs=+$("fs").value||22,r;do{r=drawTicket(d,W,H,fs);fs--}while(r.over&&fs>=12);if($("bold").checked)hard(r.c);return r.c}
+/*END*/
+
+let parsed=[];
+const drop=$("drop"), file=$("file");
+drop.onclick=()=>file.click();
+drop.ondragover=e=>{e.preventDefault();drop.classList.add("on")};
+drop.ondragleave=()=>drop.classList.remove("on");
+drop.ondrop=e=>{e.preventDefault();drop.classList.remove("on");if(e.dataTransfer.files[0])load(e.dataTransfer.files[0])};
+file.onchange=()=>{if(file.files[0])load(file.files[0])};
+
+async function load(f){
+  $("status").textContent="Leyendo “"+f.name+"”…";
+  try{
+    const pdf=await pdfjsLib.getDocument({data:await f.arrayBuffer()}).promise;
+    pages=[];parsed=[];
+    for(let i=1;i<=pdf.numPages;i++){
+      const p=await pdf.getPage(i), vp=p.getViewport({scale:3});
+      const c=document.createElement("canvas"); c.width=vp.width; c.height=vp.height;
+      const x=c.getContext("2d",{willReadFrequently:true}); x.fillStyle="#fff"; x.fillRect(0,0,c.width,c.height);
+      await p.render({canvasContext:x,viewport:vp}).promise;
+      pages.push(c);
+      try{const tc=await p.getTextContent();parsed.push(parseBoleta(toLines(tc.items.map(t=>({s:t.str,x:t.transform[4],y:t.transform[5],w:t.width})))));}catch(e){parsed.push(null);}
+    }
+    $("status").textContent=f.name+" · "+pages.length+" página(s)";
+    build();
+  }catch(e){ $("status").textContent="No se pudo leer el PDF ("+(e&&e.message?e.message:"error")+"). Prueba con otro archivo o abre el enlace en una pestaña nueva."; }
+}
+
+function bbox(c){
+  const w=c.width,h=c.height,d=c.getContext("2d").getImageData(0,0,w,h).data;
+  let x0=w,y0=h,x1=0,y1=0;
+  for(let y=0;y<h;y+=2){for(let x=0;x<w;x+=2){const i=(y*w+x)*4;
+    if(d[i]<240||d[i+1]<240||d[i+2]<240){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;}}}
+  if(x1<=x0||y1<=y0)return{x:0,y:0,w,h};
+  return{x:x0,y:y0,w:x1-x0+2,h:y1-y0+2};
+}
+
+function build(){
+  if(!pages.length)return;
+  const W=+$("w").value||80, H=+$("h").value||210, M=+$("m").value||0;
+  const prev=$("prev"); prev.innerHTML=""; $("printArea").innerHTML="";
+  const mode=$("mode").value;
+  pages.forEach((src,idx)=>{
+    const emit=out=>{prev.appendChild(out);const t=document.createElement("div");t.className="tk";const im=new Image();im.src=out.toDataURL("image/png");t.appendChild(im);$("printArea").appendChild(t);};
+    if(mode==="ticket"){
+      if(parsed[idx]){emit(ticketCanvas(parsed[idx],W,H));return;}
+      $("status").textContent="No pude leer los datos de esta página; se muestra como imagen.";
+    }
+    const b=$("crop").checked?bbox(src):{x:0,y:0,w:src.width,h:src.height};
+    const out=document.createElement("canvas");
+    out.width=Math.round(W*PXMM); out.height=Math.round(H*PXMM);
+    const x=out.getContext("2d"); x.fillStyle="#fff"; x.fillRect(0,0,out.width,out.height);
+    const aw=out.width-2*M*PXMM, ah=out.height-2*M*PXMM;
+    const f=$("fit").value;
+    let sx=aw/b.w, sy;
+    if(f==="prop"){sx=sy=Math.min(sx,ah/b.h);}
+    else if(f==="mod"){sy=Math.min(ah/b.h,sx*1.6);}
+    else{sy=ah/b.h;}
+    const dw=b.w*sx, dh=b.h*sy;
+    const dx=(out.width-dw)/2;
+    const dy=$("va").value==="center"?(out.height-dh)/2:M*PXMM;
+    x.imageSmoothingQuality="high";
+    x.drawImage(src,b.x,b.y,b.w,b.h,dx,dy,dw,dh);
+    if($("bw").checked){
+      const im=x.getImageData(0,0,out.width,out.height),d=im.data;
+      for(let i=0;i<d.length;i+=4){const g=.3*d[i]+.59*d[i+1]+.11*d[i+2];const v=g>170?255:(g<110?0:g);d[i]=d[i+1]=d[i+2]=v;}
+      x.putImageData(im,0,0);
+    }
+    prev.appendChild(out);
+    const t=document.createElement("div"); t.className="tk";
+    const im=new Image(); im.src=out.toDataURL("image/png"); t.appendChild(im);
+    $("printArea").appendChild(t);
+  });
+}
+
+["w","h","m","va","fit","crop","bw","bold","mode","fs"].forEach(id=>$(id).addEventListener("input",build));
+$("print").onclick=()=>{
+  if(!pages.length){$("status").textContent="Primero sube un PDF y espera la vista previa.";return;}
+  window.print();
+};
+$("dl").onclick=()=>{
+  if(!pages.length){$("status").textContent="Primero sube un PDF y espera la vista previa.";return;}
+  try{
+    const W=+$("w").value||80,H=+$("h").value||210;
+    const doc=new window.jspdf.jsPDF({unit:"mm",format:[W,H],orientation:"portrait"});
+    [...$("prev").querySelectorAll("canvas")].forEach((c,i)=>{
+      if(i)doc.addPage([W,H],"portrait");
+      doc.addImage(c.toDataURL("image/png"),"PNG",0,0,W,H);
+    });
+    doc.save("ticket-"+W+"x"+H+".pdf");
+    $("status").textContent="PDF descargado. Ábrelo e imprímelo en tamaño real (100 %).";
+  }catch(e){
+    $("status").textContent="No se pudo generar el PDF ("+(e&&e.message?e.message:"error")+").";
+  }
+};
+</script>
+</body>
+</html>
